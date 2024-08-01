@@ -1,5 +1,5 @@
 # Kali NetHunter Kernel Builder
-fork from https://gitlab.com/kalilinux/nethunter/build-scripts/kali-nethunter-project
+fork from https://gitlab.com/kalilinux/nethunter/build-scripts/kali-nethunter-kernel
 ![Kali NetHunter](https://gitlab.com/kalilinux/nethunter/build-scripts/kali-nethunter-project/raw/master/images/nethunter-git-logo.png)
 
 ## Installation
