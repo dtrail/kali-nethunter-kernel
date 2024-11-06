@@ -133,14 +133,7 @@ index 95e3993d8a33..5d7a064dce0e 100644
  };
  
  /*
-@@ -861,6 +867,7 @@ struct rtl8192eu_efuse {
- 	u8 usb_optional_function;
- 	u8 res9[2];
- 	u8 mac_addr[ETH_ALEN];		/* 0xd7 */
-+	u8 device_info[80];
- 	u8 res10[2];
- 	u8 vendor_name[7];
- 	u8 res11[2];
+
 @@ -872,6 +879,42 @@ struct rtl8192eu_efuse {
  	u8 res14[0xc3];
  };
@@ -354,6 +347,7 @@ index 95e3993d8a33..5d7a064dce0e 100644
  	u8 has_tx_report:1;
  	u8 gen2_thermal_meter:1;
 +	u8 has_darfrc:1;
+	u8 needs_full_init:1;
  	u32 adda_1t_init;
  	u32 adda_1t_path_on;
  	u32 adda_2t_path_on_a;
@@ -2304,17 +2298,6 @@ index 7806a4d2b1fc..8c723597fff4 100644
  		REG_OFDM0_TRX_PATH_ENABLE, REG_OFDM0_TR_MUX_PAR,
  		REG_FPGA0_XCD_RF_SW_CTRL, REG_CONFIG_ANT_A, REG_CONFIG_ANT_B,
  		REG_FPGA0_XAB_RF_SW_CTRL, REG_FPGA0_XA_RF_INT_OE,
-@@ -3406,8 +3412,8 @@ void rtl8xxxu_gen1_phy_iq_calibrate(struct rtl8xxxu_priv *priv)
- 		reg_ecc = result[candidate][7];
- 		dev_dbg(dev, "%s: candidate is %x\n", __func__, candidate);
- 		dev_dbg(dev,
--			"%s: e94 =%x e9c=%x ea4=%x eac=%x eb4=%x ebc=%x ec4=%x "
--			"ecc=%x\n ", __func__, reg_e94, reg_e9c,
-+			"%s: e94 =%x e9c=%x ea4=%x eac=%x eb4=%x ebc=%x ec4=%x ecc=%x\n",
-+			__func__, reg_e94, reg_e9c,
- 			reg_ea4, reg_eac, reg_eb4, reg_ebc, reg_ec4, reg_ecc);
- 		path_a_ok = true;
- 		path_b_ok = true;
 @@ -3824,9 +3830,8 @@ void rtl8xxxu_power_off(struct rtl8xxxu_priv *priv)
  	rtl8xxxu_write8(priv, REG_RSV_CTRL, 0x0e);
  }
@@ -2456,15 +2439,6 @@ index 7806a4d2b1fc..8c723597fff4 100644
  	if (sgi)
  		h2c.b_macid_cfg.data1 |= BIT(7);
  
-@@ -4431,7 +4458,7 @@ void rtl8xxxu_gen1_init_aggregation(struct rtl8xxxu_priv *priv)
- 			timeout = page_thresh;
- 		else if (rtl8xxxu_dma_agg_pages <= 6)
- 			dev_err(&priv->udev->dev,
--				"%s: dma_agg_pages=%i too small, minium is 6\n",
-+				"%s: dma_agg_pages=%i too small, minimum is 6\n",
- 				__func__, rtl8xxxu_dma_agg_pages);
- 		else
- 			dev_err(&priv->udev->dev,
 @@ -4462,13 +4489,17 @@ void rtl8xxxu_gen1_init_aggregation(struct rtl8xxxu_priv *priv)
  
  static void rtl8xxxu_set_basic_rates(struct rtl8xxxu_priv *priv, u32 rate_cfg)
