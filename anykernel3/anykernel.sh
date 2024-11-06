@@ -6,15 +6,15 @@
 ## AnyKernel setup
 # begin properties
 properties() { '
-kernel.string=NetHunter Kernel for the OnePlus 7 Pro
+kernel.string=NetHunter Kernel for Mi 10T Pro (apollo)
 do.devicecheck=1
 do.modules=1
 do.systemless=0 #Never use this for NetHunter kernels as it prevents us from writing to /lib/modules
 do.cleanup=1
 do.cleanuponabort=0
-device.name1=OnePlus7Pro
-device.name2=guacamole
-device.name3=OnePlus 7 Pro
+device.name1=apollo
+device.name2=Mi 10T Pro
+device.name3=Mi10TPro
 device.name4=Guacamole
 device.name5=OnePlus7
 device.name6=guacamoleb
