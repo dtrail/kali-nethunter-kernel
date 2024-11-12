@@ -456,6 +456,7 @@ function apply_patch() {
 	local ret=1
 	printf "\n"
 	info "Testing $1\n"
+	echo "Applying patch to directory: ${KDIR}" # Are we in the right folder???
         patch -d${KDIR} -p1 --dry-run < $1
 	if [ $? == 0 ]; then
 		printf "\n"
