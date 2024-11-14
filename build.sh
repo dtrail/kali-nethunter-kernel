@@ -713,9 +713,9 @@ function make_dtb() {
 	make -C $KDIR $cc -j "$THREADS" $DTB_FILES    # Don't use brackets around $DTB_FILES
 	info "Generating DTB Image"
 	$DTBTOOL $DTB_VER -o $dtb_dir/$DTB_IMG -s 2048 -p $KERNEL_OUT/scripts/dtc/ $DTB_IN/
-	rm -rf $DTB_IN/.*.tmp
-	rm -rf $DTB_IN/.*.cmd
-	rm -rf $DTB_IN/*.dtb
+	# rm -rf $DTB_IN/.*.tmp
+	# rm -rf $DTB_IN/.*.cmd
+	# rm -rf $DTB_IN/*.dtb
 	success "DTB generated"
 }
 
