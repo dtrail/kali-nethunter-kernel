@@ -91,8 +91,10 @@ function question() {
 
 # Detect OS
 function check_os() {
-	if [ -f /etc/SUSE-brand ]; then
+	if grep -iq "suse" /etc/os-release; then
 		suse=true
+	else
+		suse=false
 	fi
 }
 
@@ -234,6 +236,7 @@ function verify_sha256 {
 function get_dependencies() {
         info "Installing dependencies"
 	if [ "$suse" = true ]; then
+		sudo zypper ref
 		for i in $SUSE_DEPEND;
        		do
                		sudo zypper in -y $i
@@ -672,13 +675,18 @@ function make_anykernel_zip() {
 	mkdir -p ${UPLOAD_DIR}
 	info "Copying kernel to anykernel zip directory"
 	cp "$KERNEL_IMAGE" "$ANYKERNEL_DIR"
+	# rename for our device
+	mv "$ANYKERNEL_DIR/Image.gz-dtb" "$ANYKERNEL_DIR/Image.gz"
+	
 	if [ "$DO_DTBO" = true ]; then
 		info "Copying dtbo to zip directory"
 		cp "$DTBO_IMAGE" "$ANYKERNEL_DIR"
 	fi
 	if [ "$DO_DTB" = true ]; then
 		info "Generating dtb in zip directory"
-		make_dtb ${ANYKERNEL_DIR}
+		# make_dtb ${ANYKERNEL_DIR}
+		cp "out/arch/arm64/boot/dtb.img" "$ANYKERNEL_DIR"
+		mv "$ANYKERNEL_DIR/dtb.img" "$ANYKERNEL_DIR/dtb"
 	fi
 	if [ -d ${MODULES_OUT}/lib ]; then
 		info "Copying modules to zip directory"
@@ -690,6 +698,11 @@ function make_anykernel_zip() {
 	printf "\n"
 	info "Creating anykernel zip file"
 	cd "$ANYKERNEL_DIR"
+	# Get the current date in YYYYMMDD format 
+	CURRENT_DATE=$(date +"%Y%m%d") 
+	# Define the filename with the date appended
+	ANY_ARCHIVE="anykernel_$CURRENT_DATE.zip"
+	# Generate Zip
 	zip -r "$ANY_ARCHIVE" *
 	info "Moving anykernel zip to output directory"
 	mv "$ANY_ARCHIVE" "$UPLOAD_DIR" 
@@ -713,6 +726,7 @@ function make_dtb() {
 	make -C $KDIR $cc -j "$THREADS" $DTB_FILES    # Don't use brackets around $DTB_FILES
 	info "Generating DTB Image"
 	$DTBTOOL $DTB_VER -o $dtb_dir/$DTB_IMG -s 2048 -p $KERNEL_OUT/scripts/dtc/ $DTB_IN/
+	# We keep those for our specific setup
 	# rm -rf $DTB_IN/.*.tmp
 	# rm -rf $DTB_IN/.*.cmd
 	# rm -rf $DTB_IN/*.dtb
