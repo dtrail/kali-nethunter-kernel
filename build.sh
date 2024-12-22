@@ -701,7 +701,7 @@ function make_anykernel_zip() {
 	# Get the current date in YYYYMMDD format 
 	CURRENT_DATE=$(date +"%Y%m%d") 
 	# Define the filename with the date appended
-	ANY_ARCHIVE="anykernel_$CURRENT_DATE.zip"
+	ANY_ARCHIVE="apollo-N0tHunter_Kernel_$CURRENT_DATE.zip"
 	# Generate Zip
 	zip -r "$ANY_ARCHIVE" *
 	info "Moving anykernel zip to output directory"
