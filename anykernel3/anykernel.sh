@@ -12,14 +12,14 @@ do.modules=1
 do.systemless=0 #Never use this for NetHunter kernels as it prevents us from writing to /lib/modules
 do.cleanup=1
 do.cleanuponabort=0
-device.name1=apollo
-device.name2=apollon
+device.name1=alioth
+device.name2=aliothin
 supported.versions=
 '; } # end properties
 
 # shell variables
 block=/dev/block/bootdevice/by-name/boot;
-is_slot_device=0;
+is_slot_device=1;
 ramdisk_compression=auto;
 
 
@@ -45,3 +45,18 @@ fi;
 
 write_boot;
 ## end install
+
+## vendor_boot shell variables
+block=/dev/block/bootdevice/by-name/vendor_boot;
+is_slot_device=1;
+ramdisk_compression=auto;
+patch_vbmeta_flag=auto;
+
+# reset for vendor_boot patching
+reset_ak;
+
+# vendor_boot install
+dump_boot;
+
+write_boot;
+## end vendor_boot install
