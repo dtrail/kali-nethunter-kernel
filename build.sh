@@ -602,9 +602,9 @@ function make_kernel() {
 	## This works with clean and config targets but not for a build, we'll catch this here
 	if [ "$KDIR" == "$KERNEL_OUT" ]; then
 		if [ "$CC" == "ccache clang" ]; then
-			time make -C $KDIR CC="ccache clang"  -j "$THREADS" ${MAKE_ARGS}
+			time make -C $KDIR CC="ccache clang" -j "$THREADS" ${MAKE_ARGS} |& tee "$KERNEL_OUT/build.log"
 			if [ "$MODULES" = true ]; then
-		    		time make -C $KDIR CC="ccache clang" -j "$THREADS" INSTALL_MOD_PATH=$MODULES_OUT modules_install
+		    		time make -C $KDIR CC="ccache clang" -j "$THREADS" INSTALL_MOD_PATH=$MODULES_OUT modules_install |& tee -a "$KERNEL_OUT/build.log"
 			fi
 		else
 			time make -C $KDIR $cc -j "$THREADS" ${MAKE_ARGS}
