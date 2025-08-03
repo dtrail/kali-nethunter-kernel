@@ -576,63 +576,79 @@ function enable_ccache() {
 
 # Compile the kernel
 function make_kernel() {
-	local cc
-	local confdir=${KDIR}/arch/$ARCH/configs
-	printf "\n"
-        # CC=clang cannot be exported. Let's compile with clang if "CC" is set to "clang" in the config
-	if [ "$CC" == "clang" ]; then
-		cc="CC=clang"
-	fi
-	if [ ! "$cfg_done" = true ]; then
-		if ask "Edit the kernel config?" "Y"; then
-			info "Creating custom  config" 
-			make -C $KDIR O="$KERNEL_OUT" $cc $CONFIG $CONFIG_TOOL 
-		fi
-	fi
-	enable_ccache
-	echo ${CC}
-	echo ${CROSS_COMPILE}
-	echo ${CROSS_COMPILE_ARM32}
-	info "~~~~~~~~~~~~~~~~~~"
-	info " Building kernel"
-	info "~~~~~~~~~~~~~~~~~~"
-	copy_version
-	grep "CONFIG_MODULES=y" ${KERNEL_OUT}/.config >/dev/null && MODULES=true
-	## Some kernel sources do not compile into a separate $OUT directory so we set $OUT = $ KDIR
-	## This works with clean and config targets but not for a build, we'll catch this here
-	if [ "$KDIR" == "$KERNEL_OUT" ]; then
-		if [ "$CC" == "ccache clang" ]; then
-			time make -C $KDIR CC="ccache clang"  -j "$THREADS" ${MAKE_ARGS}
-			if [ "$MODULES" = true ]; then
-		    		time make -C $KDIR CC="ccache clang" -j "$THREADS" INSTALL_MOD_PATH=$MODULES_OUT modules_install
-			fi
-		else
-			time make -C $KDIR $cc -j "$THREADS" ${MAKE_ARGS}
-			if [ "$MODULES" = true ]; then
-		    		time make -C $KDIR $cc -j "$THREADS" INSTALL_MOD_PATH=$MODULES_OUT modules_install
-			fi
-		fi
-	else
-		if [ "$CC" == "ccache clang" ]; then
-			time make -C $KDIR O="$KERNEL_OUT" CC="ccache clang" -j "$THREADS" ${MAKE_ARGS}
-			if [ "$MODULES" = true ]; then
-		    		time make -C $KDIR O="$KERNEL_OUT" CC="ccache clang" -j "$THREADS" INSTALL_MOD_PATH=$MODULES_OUT modules_install
-			fi
-		else
-			time make -C $KDIR O="$KERNEL_OUT" $cc -j "$THREADS" ${MAKE_ARGS}
-			if [ "$MODULES" = true ]; then
-		    		time make -C $KDIR O="$KERNEL_OUT" $cc -j "$THREADS" INSTALL_MOD_PATH=$MODULES_OUT modules_install
-			fi
-		fi
-	fi
-	rm -f ${MODULES_OUT}/lib/modules/*/source
-	rm -f ${MODULES_OUT}/lib/modules/*/build
-	success "Kernel build completed"
-	if ask "Save .config as $CONFIG?"; then
-		cp -f ${confdir}/$CONFIG ${confdir}/$CONFIG.old
-		cp -f ${KERNEL_OUT}/.config ${confdir}/$CONFIG
-		info "Done. Old config backed up as $CONFIG.old"
-	fi
+    local cc
+    local confdir=${KDIR}/arch/$ARCH/configs
+    printf "\n"
+
+    # CC=clang cannot be exported. Let's compile with clang if "CC" is set to "clang" in the config
+    if [ "$CC" == "clang" ]; then
+        cc="CC=clang"
+    fi
+
+    if [ ! "$cfg_done" = true ]; then
+        if ask "Edit the kernel config?" "Y"; then
+            info "Creating custom config"
+            make -C $KDIR O="$KERNEL_OUT" $cc $CONFIG $CONFIG_TOOL
+        fi
+    fi
+
+    enable_ccache
+    echo "Compiler: ${CC}"
+    echo "Cross-Compile: ${CROSS_COMPILE}"
+    echo "Cross-Compile ARM32: ${CROSS_COMPILE_ARM32}"
+
+    info "~~~~~~~~~~~~~~~~~~"
+    info " Building kernel"
+    info "~~~~~~~~~~~~~~~~~~"
+
+    copy_version
+    grep "CONFIG_MODULES=y" ${KERNEL_OUT}/.config >/dev/null && MODULES=true
+
+    echo "MAKE_ARGS: ${MAKE_ARGS}"
+
+    if [ "$KDIR" == "$KERNEL_OUT" ]; then
+        if [ "$CC" == "ccache clang" ]; then
+            time make -C $KDIR CC="ccache clang" -j "$THREADS" ${MAKE_ARGS}
+            if [ "$MODULES" = true ]; then
+                time make -C $KDIR CC="ccache clang" -j "$THREADS" ${MAKE_ARGS} modules
+                time make -C $KDIR CC="ccache clang" -j "$THREADS" INSTALL_MOD_PATH=$MODULES_OUT modules_install
+            fi
+        else
+            time make -C $KDIR $cc -j "$THREADS" ${MAKE_ARGS}
+            if [ "$MODULES" = true ]; then
+                time make -C $KDIR $cc -j "$THREADS" ${MAKE_ARGS} modules
+                time make -C $KDIR $cc -j "$THREADS" INSTALL_MOD_PATH=$MODULES_OUT modules_install
+            fi
+        fi
+    else
+        if [ "$CC" == "ccache clang" ]; then
+            time make -C $KDIR O="$KERNEL_OUT" CC="ccache clang" -j "$THREADS" ${MAKE_ARGS}
+            if [ "$MODULES" = true ]; then
+                time make -C $KDIR O="$KERNEL_OUT" CC="ccache clang" -j "$THREADS" ${MAKE_ARGS} modules
+                time make -C $KDIR O="$KERNEL_OUT" CC="ccache clang" -j "$THREADS" INSTALL_MOD_PATH=$MODULES_OUT modules_install
+            fi
+        else
+            time make -C $KDIR O="$KERNEL_OUT" $cc -j "$THREADS" ${MAKE_ARGS}
+            if [ "$MODULES" = true ]; then
+                time make -C $KDIR O="$KERNEL_OUT" $cc -j "$THREADS" ${MAKE_ARGS} modules
+                time make -C $KDIR O="$KERNEL_OUT" $cc -j "$THREADS" INSTALL_MOD_PATH=$MODULES_OUT modules_install
+            fi
+        fi
+    fi
+
+    # Optional logging: show built modules
+    find ${KERNEL_OUT} -name '*.ko' || echo "⚠️ No .ko files found in ${KERNEL_OUT}"
+
+    rm -f ${MODULES_OUT}/lib/modules/*/source
+    rm -f ${MODULES_OUT}/lib/modules/*/build
+
+    success "Kernel build completed"
+
+    if ask "Save .config as $CONFIG?"; then
+        cp -f ${confdir}/$CONFIG ${confdir}/$CONFIG.old
+        cp -f ${KERNEL_OUT}/.config ${confdir}/$CONFIG
+        info "Done. Old config backed up as $CONFIG.old"
+    fi
 }
 
 # Generate the NetHunter kernel zip - to be extracted in the devices folder of the nethunter-installer
@@ -676,7 +692,7 @@ function make_anykernel_zip() {
 	info "Copying kernel to anykernel zip directory"
 	cp "$KERNEL_IMAGE" "$ANYKERNEL_DIR"
 	# rename for our device
-	# mv "$ANYKERNEL_DIR/Image.gz-dtb" "$ANYKERNEL_DIR/Image.gz"
+	mv "$ANYKERNEL_DIR/Image.gz-dtb" "$ANYKERNEL_DIR/Image.gz"
 	
 	if [ "$DO_DTBO" = true ]; then
 		info "Copying dtbo to zip directory"
@@ -729,7 +745,7 @@ function make_dtb() {
 	We keep those for our specific setup
 	rm -rf $DTB_IN/.*.tmp
 	rm -rf $DTB_IN/.*.cmd
-	rm -rf $DTB_IN/*.dtb
+	# rm -rf $DTB_IN/*.dtb
 	success "DTB generated"
 }
 

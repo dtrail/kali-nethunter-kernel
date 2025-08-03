@@ -1,19 +1,20 @@
 # AnyKernel3 Ramdisk Mod Script
 # osm0sis @ xda-developers
-# Changes for SkyDragon by HolyAngel @ xda-developers
-# Changes for NetHunter by Re4son
 
 ## AnyKernel setup
 # begin properties
 properties() { '
-kernel.string=N0thunter
+kernel.string=N0Kernel by EmanuelCN
 do.devicecheck=1
-do.modules=1
-do.systemless=0 #Never use this for NetHunter kernels as it prevents us from writing to /lib/modules
+do.modules=0
+do.systemless=1 # usually nogo for NH, but we dont provide modules anyway
 do.cleanup=1
 do.cleanuponabort=0
 device.name1=alioth
 device.name2=aliothin
+device.name3=
+device.name4=
+device.name5=
 supported.versions=
 '; } # end properties
 
