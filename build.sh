@@ -676,7 +676,7 @@ function make_anykernel_zip() {
 	info "Copying kernel to anykernel zip directory"
 	cp "$KERNEL_IMAGE" "$ANYKERNEL_DIR"
 	# rename for our device
-	mv "$ANYKERNEL_DIR/Image.gz-dtb" "$ANYKERNEL_DIR/Image.gz"
+	# mv "$ANYKERNEL_DIR/Image.gz-dtb" "$ANYKERNEL_DIR/Image.gz"
 	
 	if [ "$DO_DTBO" = true ]; then
 		info "Copying dtbo to zip directory"
@@ -726,10 +726,10 @@ function make_dtb() {
 	make -C $KDIR $cc -j "$THREADS" $DTB_FILES    # Don't use brackets around $DTB_FILES
 	info "Generating DTB Image"
 	$DTBTOOL $DTB_VER -o $dtb_dir/$DTB_IMG -s 2048 -p $KERNEL_OUT/scripts/dtc/ $DTB_IN/
-	# We keep those for our specific setup
-	# rm -rf $DTB_IN/.*.tmp
-	# rm -rf $DTB_IN/.*.cmd
-	# rm -rf $DTB_IN/*.dtb
+	We keep those for our specific setup
+	rm -rf $DTB_IN/.*.tmp
+	rm -rf $DTB_IN/.*.cmd
+	rm -rf $DTB_IN/*.dtb
 	success "DTB generated"
 }
 
