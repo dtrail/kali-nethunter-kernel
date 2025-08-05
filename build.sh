@@ -27,6 +27,8 @@ reset='\e[0m'
 # Build directory
 BUILD_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+# alioth anykernel patch dir
+ALIOTH_DIR="/home/godis/nethunter_kernel_xiaomi_sm8250/kali-nethunter-kernel/pre_ak/"
 ##############################################
 # Functions
 ##############################################
@@ -709,11 +711,16 @@ function make_anykernel_zip() {
 		mkdir -p ${ANYKERNEL_DIR}/${MODULE_DIRTREE}
 		cp -r ${MODULES_IN} ${ANYKERNEL_DIR}/${MODULE_DIRTREE}
 	fi	
+	info "patching alioth dtbo"
+	cd "$ANYKERNEL_DIR"
+	rm dtb
+	rm dtbo.img
+	cp -rf ${ALIOTH_DIR}/. ${ANYKERNEL_DIR}/
+	sudo chown -R ${SUDO_USER}:${SUDO_USER} ${ANYKERNEL_DIR}
 	success "Done"
 	make_clog
 	printf "\n"
-	info "Creating anykernel zip file"
-	cd "$ANYKERNEL_DIR"
+	info "Creating anykernel zip file"	
 	# Get the current date in YYYYMMDD format 
 	CURRENT_DATE=$(date +"%Y%m%d") 
 	# Define the filename with the date appended
