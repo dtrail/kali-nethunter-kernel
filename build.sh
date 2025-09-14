@@ -713,8 +713,8 @@ function make_anykernel_zip() {
 	fi	
 	info "patching alioth dtbo"
 	cd "$ANYKERNEL_DIR"
-	rm dtb
-	rm dtbo.img
+	# rm dtb
+	# rm dtbo.img
 	cp -rf ${ALIOTH_DIR}/. ${ANYKERNEL_DIR}/
 	sudo chown -R ${SUDO_USER}:${SUDO_USER} ${ANYKERNEL_DIR}
 	success "Done"
