@@ -2,6 +2,7 @@
 # osm0sis @ xda-developers
 # Changes for SkyDragon by HolyAngel @ xda-developers
 # Changes for NetHunter by Re4son
+# N0tHunter Kernel specifics by dtrail / Godis1
 
 ## AnyKernel setup
 # begin properties
@@ -32,11 +33,18 @@ ramdisk_compression=auto;
 # set permissions/ownership for included ramdisk files
 set_perm_recursive 0 0 750 750 $ramdisk/*;
 set_perm_recursive 0 0 750 750 $ramdisk/init* $ramdisk/sbin;
+set_perm 0 0 755 $ramdisk/chimera;
+set_perm 0 0 755 $ramdisk/chimera_controller.sh;
+set_perm 0 0 750 $ramdisk/init.chimera.rc;
 
 ## AnyKernel install
 dump_boot;
 
 # Begin Ramdisk Changes
+
+# 1. Chimera Integration
+# init.rc now unpacked and ready for changes
+insert_line init.rc "import /init.chimera.rc" after "import /init.environ.rc" "import /init.chimera.rc";
 
 # migrate from /overlay to /overlay.d to enable SAR Magisk
 if [ -d $ramdisk/overlay ]; then

@@ -1,0 +1,22 @@
+#!/system/bin/sh
+# Kleines Helper Tool für das Terminal
+
+case "$1" in
+    on|1|enable)
+        setprop persist.chimera.enable 1
+        echo "Chimera enabled."
+        ;;
+    off|0|disable)
+        setprop persist.chimera.enable 0
+        echo "Chimera disabled (Master Kill Switch)."
+        ;;
+    status)
+        STATE=$(getprop persist.chimera.enable)
+        KERNEL=$(cat /sys/kernel/chimera_doom/active)
+        echo "Master Switch: $STATE"
+        echo "Kernel Block:  $KERNEL"
+        ;;
+    *)
+        echo "Usage: chimera [on|off|status]"
+        ;;
+esac
