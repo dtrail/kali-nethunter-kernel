@@ -32,11 +32,17 @@ ramdisk_compression=auto;
 ## AnyKernel file attributes
 # set permissions/ownership for included ramdisk files
 set_perm_recursive 0 0 750 750 $ramdisk/*;
+set_perm_recursive 0 0 755 755 $ramdisk/chimera_controller.sh;
+set_perm_recursive 0 0 755 755 $ramdisk/chimera;
 
 ## AnyKernel install
 dump_boot;
 
 # Begin Ramdisk Changes
+
+# 1. Chimera Integration
+# init.rc now unpacked and ready for changes
+insert_line init.rc "import /init.chimera.rc" after "import /init.environ.rc" "import /init.chimera.rc";
 
 # migrate from /overlay to /overlay.d to enable SAR Magisk
 if [ -d $ramdisk/overlay ]; then
