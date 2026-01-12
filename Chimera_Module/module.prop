@@ -1,0 +1,6 @@
+id=chimera_manager
+name=Chimera Doom Sleep
+version=v1.0
+versionCode=1
+author=Godis
+description=Userspace controller & CLI for Chimera Doom Kernel Module.

@@ -33,9 +33,6 @@ ramdisk_compression=auto;
 # set permissions/ownership for included ramdisk files
 set_perm_recursive 0 0 750 750 $ramdisk/*;
 set_perm_recursive 0 0 750 750 $ramdisk/init* $ramdisk/sbin;
-set_perm 0 0 755 $ramdisk/chimera;
-set_perm 0 0 755 $ramdisk/chimera_controller.sh;
-set_perm 0 0 750 $ramdisk/init.chimera.rc;
 
 ## AnyKernel install
 dump_boot;
