@@ -14,3 +14,4 @@ anykernel3/*dtb*
 anykernel3/Changelog.txt
 Chimera_Module/Chimera_Handler-Magisk.zip
 bak
+*.zip
