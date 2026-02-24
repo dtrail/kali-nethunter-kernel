@@ -42,28 +42,28 @@ case "$1" in
             KERNEL=$(cat /sys/kernel/chimera_doom/active)
             DEBUG=$(cat /sys/kernel/chimera_doom/debug)
             
-            # Zeige an, ob die Whitelist Inhalt hat
-            if [ -f "/sys/kernel/chimera_doom/whitelist" ]; then
-                WL_CONTENT=$(cat /sys/kernel/chimera_doom/whitelist)
-                if [ -z "$WL_CONTENT" ]; then
-                    WL_STATUS="Empty"
+            # Zeige an, ob die Blocklist Inhalt hat
+            if [ -f "/sys/kernel/chimera_doom/blocklist" ]; then
+                BL_CONTENT=$(cat /sys/kernel/chimera_doom/blocklist)
+                if [ -z "$BL_CONTENT" ]; then
+                    BL_STATUS="Empty"
                 else
-                    WL_STATUS="Loaded"
+                    BL_STATUS="Loaded"
                 fi
             else
-                WL_STATUS="Error (Node missing)"
+                BL_STATUS="Error (Node missing)"
             fi
         else
             KERNEL="N/A (Module Error)"
             DEBUG="N/A"
-            WL_STATUS="N/A"
+            BL_STATUS="N/A"
         fi
         
         echo "--------------------------------"
         echo "Master Switch: $STATE"
         echo "Kernel Block:  $KERNEL"
         echo "Debug Mode:    $DEBUG"
-        echo "Whitelist:     $WL_STATUS"
+        echo "Blocklist:     $BL_STATUS"
         echo "--------------------------------"
         ;;
     *)
