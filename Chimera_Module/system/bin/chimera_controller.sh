@@ -105,8 +105,8 @@ create_default_config() {
     echo "DIAG_WS" >> $CONF_FILE
     echo "*telemetry*" >> $CONF_FILE
     echo "*mdm_stats*" >> $CONF_FILE
-    echo "*logd*" >> $CONF_FILE
-    echo "pdp_watchdog" >> $CONF_FILE
+    echo "# *logd*" >> $CONF_FILE
+    echo "# pdp_watchdog" >> $CONF_FILE
     echo "" >> $CONF_FILE
     
     echo "# --- GOOGLE SERVICES (Uncommented = BLOCKED) ---" >> $CONF_FILE
