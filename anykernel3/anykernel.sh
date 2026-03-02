@@ -23,6 +23,12 @@ block=/dev/block/bootdevice/by-name/boot;
 is_slot_device=0;
 ramdisk_compression=auto;
 
+ui_print " "
+ui_print "---------------------------------------"
+ui_print "PSI-based Memory Management enabled!"
+ui_print "Kernel-side support is active."
+ui_print "---------------------------------------"
+ui_print " "
 
 ## AnyKernel methods (DO NOT CHANGE)
 # import patching functions/variables - see for reference
