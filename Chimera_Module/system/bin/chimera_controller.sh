@@ -97,26 +97,26 @@ create_default_config() {
     echo "# --- HARDWARE & AUDIO (Commented = ALLOWED) ---" >> $CONF_FILE
     echo "# Do NOT uncomment these unless you want broken audio!" >> $CONF_FILE
     echo "# sensor_ind" >> $CONF_FILE
-    echo "# *mRoutingWakeLock*" >> $CONF_FILE
+    echo "# mRoutingWakeLock" >> $CONF_FILE
     echo "" >> $CONF_FILE
 
     echo "# --- TELEMETRY & DIAGNOSTICS (Uncommented = BLOCKED) ---" >> $CONF_FILE
     echo "# Safe to block. Stops Qualcomm/System data collection." >> $CONF_FILE
     echo "# DIAG_WS" >> $CONF_FILE
-    echo "*telemetry*" >> $CONF_FILE
-    echo "# *mdm_stats*" >> $CONF_FILE
-    echo "# *logd*" >> $CONF_FILE
+    echo "telemetry" >> $CONF_FILE
+    echo "# mdm_stats" >> $CONF_FILE
+    echo "# logd" >> $CONF_FILE
     echo "# pdp_watchdog" >> $CONF_FILE
     echo "" >> $CONF_FILE
     
     echo "# --- GOOGLE SERVICES (Uncommented = BLOCKED) ---" >> $CONF_FILE
-    echo "*gms_scheduler*" >> $CONF_FILE
+    echo "gms_scheduler" >> $CONF_FILE
     echo "GcmSchedulerWakeupService" >> $CONF_FILE
     echo "QosUploaderService" >> $CONF_FILE
     echo "PayGcmTaskService" >> $CONF_FILE
     echo "Google_C2DM" >> $CONF_FILE
     echo "ChromeSync" >> $CONF_FILE
-    echo "*SendReportAction*" >> $CONF_FILE
+    echo "SendReportAction" >> $CONF_FILE
     echo "" >> $CONF_FILE
 
     echo "# --- EXPERIMENTAL NETWORK (Commented = ALLOWED) ---" >> $CONF_FILE

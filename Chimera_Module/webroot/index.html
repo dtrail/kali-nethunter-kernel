@@ -50,6 +50,14 @@
             <p style="text-align: center; color: #aaa;">Loading data...</p>
         </div>
     </div>
+    
+    <div class="card">
+        <h3>➕ Add Custom Wakelock</h3>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="custom-wl-input" placeholder="e.g. wlan_rx_wake" style="flex-grow: 1; padding: 10px; border-radius: 8px; border: none; background: #2a2a2a; color: white;">
+            <button class="btn-primary" style="width: auto; margin: 0; background: var(--green);" onclick="addCustomWakelock()">Add</button>
+        </div>
+    </div>
 
     <script>
         // --- ROOT EXECUTION WRAPPER ---
@@ -161,6 +169,22 @@
             loadStats();
         }
 
+	async function addCustomWakelock() {
+            const input = document.getElementById('custom-wl-input');
+            const name = input.value.trim();
+            
+            if (name.length < 2) {
+                alert('Please enter a valid wakelock name!');
+                return;
+            }
+
+            // Nutzt die bereits vorhandene toggleWakelock Funktion, um ihn zu blocken
+            await toggleWakelock(name, true);
+            
+            input.value = ''; // Eingabefeld leeren
+            alert('Added "' + name + '" to the blocklist!');
+        }
+        
         // Init beim Öffnen
         window.onload = loadStats;
     </script>
