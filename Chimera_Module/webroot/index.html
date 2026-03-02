@@ -4,189 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chimera Familia Control</title>
-    <style>
-        :root { --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; --accent: #bb86fc; --red: #cf6679; --green: #03dac6; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
-        h2 { text-align: center; color: var(--accent); margin-bottom: 20px; }
-        .card { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .card h3 { margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; font-size: 1.1em; }
-        
-        /* Buttons */
-        button { border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:active { opacity: 0.7; }
-        .btn-primary { background: var(--accent); color: #000; width: 100%; margin-bottom: 10px; }
-        .btn-small { padding: 6px 10px; font-size: 0.85em; margin-left: 5px; }
-        .btn-search { background: #333; color: #fff; }
-        .btn-block { background: var(--red); color: #fff; }
-        .btn-allow { background: var(--green); color: #000; }
-
-        /* Wakelock List */
-        .wl-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #2a2a2a; }
-        .wl-item:last-child { border-bottom: none; }
-        .wl-info { flex-grow: 1; overflow: hidden; }
-        .wl-name { font-weight: bold; font-family: monospace; font-size: 0.95em; word-break: break-all; }
-        .wl-stats { font-size: 0.8em; color: #aaa; margin-top: 4px; }
-        .wl-actions { display: flex; flex-shrink: 0; }
-
-        .status-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7em; font-weight: bold; margin-bottom: 4px; }
-        .badge-blocked { background: rgba(207, 102, 121, 0.2); color: var(--red); }
-        .badge-allowed { background: rgba(3, 218, 198, 0.2); color: var(--green); }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <h2>🐉 Chimera Familia</h2>
+    <h2>🐉 CHIMERA FAMILIA</h2>
+
+    <div class="dashboard">
+        <div class="dash-item">
+            <span class="dash-val" id="stat-total-blocked">0</span>
+            <span class="dash-label">Blocked Events</span>
+        </div>
+        <div class="dash-item">
+            <span class="dash-val" id="stat-active-profile">-</span>
+            <span class="dash-label">Active Rules</span>
+        </div>
+    </div>
 
     <div class="card">
         <h3>Master Controls</h3>
-        <button class="btn-primary" onclick="runShell('setprop persist.chimera.enable 1'); alert('Chimera Enabled');">Turn ON Chimera</button>
-        <button class="btn-primary" style="background: #333; color: #fff;" onclick="runShell('setprop persist.chimera.enable 0'); alert('Chimera Disabled');">Turn OFF Chimera</button>
+        <button class="btn-main" id="btn-enable">Enable Chimera</button>
+        <button class="btn-main" id="btn-disable" style="background: #333; color: white;">Disable Chimera</button>
     </div>
 
     <div class="card">
-        <h3>Detected Wakelocks</h3>
-        <button class="btn-primary" onclick="loadStats()">↻ Refresh List</button>
+        <h3>Active Blocklist Profile</h3>
+        <div id="blocklist-content">
+            <p style="color: #555;">Reading config...</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Live Analytics</h3>
+        <button class="btn-main" id="btn-refresh" style="background: #222; color: var(--accent); border: 1px solid var(--accent);">↻ Refresh Data</button>
         <div id="wakelock-list">
-            <p style="text-align: center; color: #aaa;">Loading data...</p>
+            <p style="text-align: center; color: #555;">Initializing...</p>
         </div>
     </div>
-    
+
     <div class="card">
-        <h3>➕ Add Custom Wakelock</h3>
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="custom-wl-input" placeholder="e.g. wlan_rx_wake" style="flex-grow: 1; padding: 10px; border-radius: 8px; border: none; background: #2a2a2a; color: white;">
-            <button class="btn-primary" style="width: auto; margin: 0; background: var(--green);" onclick="addCustomWakelock()">Add</button>
+        <h3>Add Manual Entry</h3>
+        <div style="display: flex; gap: 8px;">
+            <input type="text" id="custom-wl-input" placeholder="Wakelock Name...">
+            <button class="btn-block" id="btn-add-custom">Block</button>
         </div>
     </div>
 
-    <script>
-        // --- ROOT EXECUTION WRAPPER ---
-        // Funktioniert mit KernelSU. Wenn am PC getestet wird, gibt es einen Mock aus.
-        async function runShell(cmd) {
-            if (typeof window.ksu !== 'undefined') {
-                try {
-                    const result = await window.ksu.exec(cmd);
-                    return result.stdout || result.stderr || "";
-                } catch (e) {
-                    return e.toString();
-                }
-            } else {
-                console.log("[MOCK EXEC] " + cmd);
-                return "Mock Mode";
-            }
-        }
-
-        // --- LOAD AND PARSE STATS ---
-        async function loadStats() {
-            const listDiv = document.getElementById('wakelock-list');
-            listDiv.innerHTML = '<p style="text-align: center; color: #aaa;">Reading kernel logs...</p>';
-
-            // Lese stats.md und blocklist.conf
-            const rawStats = await runShell('cat /data/adb/chimera/logs/chimera_stats.md');
-            const rawBlocklist = await runShell('cat /data/adb/chimera/blocklist.conf');
-
-            if (!rawStats || rawStats.includes("No such file")) {
-                listDiv.innerHTML = '<p style="text-align: center; color: var(--red);">No stats found yet. Let the device sleep first!</p>';
-                return;
-            }
-
-            let wakelocks = [];
-            const lines = rawStats.split('\n');
-            
-            lines.forEach(line => {
-                if (line.includes('|') && !line.includes('Wakelock Name') && !line.includes(':---')) {
-                    const parts = line.split('|').map(p => p.trim());
-                    if (parts.length > 3 && parts[1]) {
-                        const name = parts[1];
-                        const blocked = parseInt(parts[2].replace(/\*/g, '')) || 0;
-                        const allowed = parseInt(parts[3]) || 0;
-                        const total = blocked + allowed;
-                        
-                        wakelocks.push({ name, blocked, allowed, total });
-                    }
-                }
-            });
-
-            // Sortieren nach meisten Ausführungen (Total)
-            wakelocks.sort((a, b) => b.total - a.total);
-
-            listDiv.innerHTML = '';
-
-            wakelocks.forEach(wl => {
-                // Prüfen ob aktiv geblockt in der config (ohne # davor)
-                const isBlockedInConfig = new RegExp(`^${wl.name}$`, 'm').test(rawBlocklist);
-
-                const item = document.createElement('div');
-                item.className = 'wl-item';
-                
-                const searchUrl = `https://www.google.com/search?q=android+wakelock+"${encodeURIComponent(wl.name)}"`;
-                
-                const badgeHtml = isBlockedInConfig 
-                    ? `<span class="status-badge badge-blocked">BLOCKED</span>` 
-                    : `<span class="status-badge badge-allowed">ALLOWED</span>`;
-
-                const actionBtnHtml = isBlockedInConfig
-                    ? `<button class="btn-small btn-allow" onclick="toggleWakelock('${wl.name}', false)">Allow</button>`
-                    : `<button class="btn-small btn-block" onclick="toggleWakelock('${wl.name}', true)">Block</button>`;
-
-                item.innerHTML = `
-                    <div class="wl-info">
-                        ${badgeHtml}<br>
-                        <span class="wl-name">${wl.name}</span>
-                        <div class="wl-stats">Fires: <b>${wl.total}</b> (B: ${wl.blocked} | A: ${wl.allowed})</div>
-                    </div>
-                    <div class="wl-actions">
-                        <button class="btn-small btn-search" onclick="window.open('${searchUrl}', '_blank')">🔍</button>
-                        ${actionBtnHtml}
-                    </div>
-                `;
-                listDiv.appendChild(item);
-            });
-        }
-
-        // --- WAKELOCK TOGGLE LOGIC ---
-        async function toggleWakelock(name, blockIt) {
-            // Bash command um die blocklist.conf sicher zu bearbeiten
-            let shellCmd = `
-            CONF="/data/adb/chimera/blocklist.conf"
-            # Zuerst alle Vorkommen des Namens löschen (mit und ohne #)
-            sed -i "/^[[:space:]]*#*[[:space:]]*${name}$/d" "$CONF"
-            `;
-
-            if (blockIt) {
-                // Füge aktiv hinzu
-                shellCmd += `echo "${name}" >> "$CONF"\n`;
-            } else {
-                // Füge auskommentiert hinzu
-                shellCmd += `echo "# ${name}" >> "$CONF"\n`;
-            }
-
-            // Controller triggern
-            shellCmd += `kill -HUP $(pgrep -f chimera_controller.sh) 2>/dev/null`;
-
-            // Ausführen und UI neuladen
-            await runShell(shellCmd);
-            loadStats();
-        }
-
-	async function addCustomWakelock() {
-            const input = document.getElementById('custom-wl-input');
-            const name = input.value.trim();
-            
-            if (name.length < 2) {
-                alert('Please enter a valid wakelock name!');
-                return;
-            }
-
-            // Nutzt die bereits vorhandene toggleWakelock Funktion, um ihn zu blocken
-            await toggleWakelock(name, true);
-            
-            input.value = ''; // Eingabefeld leeren
-            alert('Added "' + name + '" to the blocklist!');
-        }
-        
-        // Init beim Öffnen
-        window.onload = loadStats;
-    </script>
+    <script src="main.js"></script>
 </body>
 </html>

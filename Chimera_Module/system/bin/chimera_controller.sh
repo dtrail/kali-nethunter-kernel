@@ -26,11 +26,11 @@ GMS_PKG="com.google.android.gms"
 SYNC_SVC="com.google.android.gms/.chimera.GmsIntentOperationService"
 
 # --- DEFAULTS ---
-INTERVAL_NORMAL=3600   # 1 Hour
-INTERVAL_SAVER=7200    # 2 Hours
-SYNC_DURATION=60       # Time to allow sync (Maintenance Window)
-CONF_GRACE_MS=2000     # Kernel Grace Period
-CONF_PANIC_MS=10000    # Burst Protection Duration
+INTERVAL_NORMAL=3600
+INTERVAL_SAVER=7200
+SYNC_DURATION=60
+CONF_GRACE_MS=2000
+CONF_PANIC_MS=10000
 
 # --- STATE VARIABLES ---
 LAST_SYNC=$(date +%s)
@@ -48,6 +48,7 @@ write_sysfs() {
 
 update_log_file() {
     mkdir -p "$LOG_DIR"
+    local WEB_STATS="/data/adb/modules/chimera/webroot/stats.data"
     
     # 1. Check Rotation
     if [ -f "$LOG_FILE" ]; then
@@ -61,13 +62,18 @@ update_log_file() {
 
     # 2. Write Stats from Kernel
     if [ -f "$SYSFS_STATS" ]; then
+        # Saubere Version für die WebUI
+        cat "$SYSFS_STATS" > "$WEB_STATS"
+        chmod 644 "$WEB_STATS"
+
+        # Version für das menschliche Log-File
         echo "# Chimera Wakelock Statistics (Live Snapshot)" > "$LOG_FILE"
         echo "Last Sync: $(date)" >> "$LOG_FILE"
         echo "" >> "$LOG_FILE"
         echo "| Wakelock Name | Blocked (Total) | Allowed (Total) |" >> "$LOG_FILE"
         echo "| :--- | :---: | :---: |" >> "$LOG_FILE"
         
-        cat "$SYSFS_STATS" | tail -n +2 | while IFS='|' read -r name blocked allowed; do
+        tail -n +2 "$SYSFS_STATS" | while IFS='|' read -r name blocked allowed; do
              if [ ! -z "$name" ]; then
                  echo "| $name | **$blocked** | $allowed |" >> "$LOG_FILE"
              fi
@@ -138,7 +144,7 @@ apply_config() {
         return
     fi
     
-    # Parse Config (Ignoriert auskommentierte Zeilen und leere Zeilen)
+    # Parse Config
     PARSED_BL=$(grep -v "^[[:space:]]*#" $CONF_FILE | grep -v "^[[:space:]]*$" | tr '\n' ',' | sed 's/,,*/,/g' | sed 's/^,//' | sed 's/,$//')
     
     # Send to Kernel
@@ -148,7 +154,7 @@ apply_config() {
         write_sysfs $SYSFS_BLOCKLIST ""
     fi
     
-    # Apply Kernel Parameters (Grace & Panic)
+    # Apply Kernel Parameters
     write_sysfs $SYSFS_GRACE $CONF_GRACE_MS
     write_sysfs $SYSFS_PANIC $CONF_PANIC_MS
     
@@ -156,41 +162,28 @@ apply_config() {
 }
 
 auto_heal() {
-    # 1. Scan dmesg for our specific emergency flag
     EMERGENCIES=$(dmesg | grep "CHIMERA-EMERGENCY:" | awk -F'CHIMERA-EMERGENCY: ' '{print $2}' | tr -d '\r' | sort -u)
     
     if [ ! -z "$EMERGENCIES" ]; then
-        # Clear dmesg buffer so we don't process the same error twice
         dmesg -c > /dev/null 
-        
         HEALED=0
         
-        # 2. Ensure the Emergency Section exists in the config
         if ! grep -q "EMERGENCY ENTRIES" "$CONF_FILE"; then
             echo "" >> "$CONF_FILE"
             echo "# --- EMERGENCY ENTRIES (Auto-disabled for causing bursts/instability) ---" >> "$CONF_FILE"
         fi
         
-        # 3. Process each misbehaving wakelock
         for lock in $EMERGENCIES; do
-            # Check if it is currently active (no # in front of it)
             if grep -q "^${lock}$" "$CONF_FILE"; then
-                # Remove the active entry from wherever it is in the file
                 sed -i "/^${lock}$/d" "$CONF_FILE"
-                
-                # Append it to the bottom under the emergency section, commented out
                 echo "# $lock" >> "$CONF_FILE"
-                
-                # Log this action to our markdown stats file for the user to see
                 echo "⚠️ **AUTO-HEAL:** Automatically disabled \`$lock\` to prevent system instability." >> "$LOG_FILE"
-                
                 HEALED=1
             fi
         done
         
-        # 4. Force a config reload immediately if we changed something
         if [ "$HEALED" == "1" ]; then
-            LAST_CONF_SUM="" # Force sum mismatch
+            LAST_CONF_SUM=""
             apply_config
         fi
     fi
@@ -200,6 +193,15 @@ auto_heal() {
 # MAIN LOGIC (v6.1 - Smart Engine)
 # ==============================================================================
 
+trap 'LAST_CONF_SUM=""; apply_config; update_log_file' HUP
+
+# --- 1. SOFORTIGE INITIALISIERUNG ---
+if [ ! -f "$CONF_FILE" ]; then 
+    create_default_config
+fi
+
+mkdir -p "$LOG_DIR"
+
 if [ "$(getprop persist.chimera.enable)" == "" ]; then
     setprop persist.chimera.enable 1
 fi
@@ -207,22 +209,19 @@ fi
 SETTINGS_FILE="/data/adb/chimera/settings.conf"
 LOOP_COUNT=0
 
+apply_config
+
 while true; do
     
-    # 0. Check for kernel emergencies and auto-heal
     auto_heal
-    
-    # 1. Apply Config (Live Reload)
     apply_config
 
-    # 2. Update Stats Log (Every 60 seconds)
     LOOP_COUNT=$((LOOP_COUNT + 1))
     if [ $LOOP_COUNT -ge 6 ]; then
         update_log_file
         LOOP_COUNT=0
     fi
 
-    # 3. Master Switch Check
     ENABLED=$(getprop persist.chimera.enable)
     if [ "$ENABLED" == "0" ]; then
         CURRENT_VAL=$(cat $SYSFS_ACTIVE 2>/dev/null)
@@ -230,21 +229,16 @@ while true; do
             write_sysfs $SYSFS_ACTIVE 0
             am set-standby-bucket $GMS_PKG active > /dev/null 2>&1
         fi
-        sleep 10
+        sleep 10 & wait $!
         continue
     fi
 
-    # --- Lade Smart Settings ---
     if [ -f "$SETTINGS_FILE" ]; then source "$SETTINGS_FILE"; fi
 
-    # 4. Get Screen State
     SCREEN_STATE=$(dumpsys power | grep "mWakefulness=" | cut -d= -f2 | tr -d '\r')
     NOW=$(date +%s)
 
     if [ "$SCREEN_STATE" != "Awake" ]; then
-        # >>> SCREEN OFF >>>
-        
-        # Determine Interval (Night Mode vs Saver vs Normal)
         CURRENT_INTERVAL=$INTERVAL_NORMAL
         LOW_POWER=$(settings get global low_power)
         
@@ -254,26 +248,22 @@ while true; do
         
         if [ "$NIGHT_MODE" == "1" ]; then
             CURRENT_HOUR=$(date +%H)
-            # Einfacher Check: Wenn aktuelle Stunde zwischen Start und End liegt
             if [ "$CURRENT_HOUR" -ge "${NIGHT_START:-01}" ] && [ "$CURRENT_HOUR" -lt "${NIGHT_END:-06}" ]; then
-                CURRENT_INTERVAL=14400 # 4 Stunden Maintenance Interval in der Nacht!
+                CURRENT_INTERVAL=14400
             fi
         fi
         
         TIME_DIFF=$((NOW - LAST_SYNC))
 
         if [ $TIME_DIFF -ge $CURRENT_INTERVAL ]; then
-            # >>> MAINTENANCE WINDOW <<<
             write_sysfs $SYSFS_ACTIVE 0
             am set-standby-bucket $GMS_PKG active > /dev/null 2>&1
             am start-service $SYNC_SVC > /dev/null 2>&1
-            sleep $SYNC_DURATION
+            sleep $SYNC_DURATION & wait $!
             LAST_SYNC=$(date +%s)
         else
-            # >>> DOOM BLOCK (Mit Smart Detect) <<<
             BLOCK_ALLOWED=1
             
-            # Smart Call Detection (Verhindert Abbrüche bei Anrufen bei Screen-Off)
             if [ "$SMART_CALL_DETECT" == "1" ]; then
                 CALL_STATE=$(dumpsys telecom | grep "mCallState=" | tail -n 1)
                 if echo "$CALL_STATE" | grep -q -E "RINGING|ACTIVE|DIALING"; then
@@ -281,9 +271,7 @@ while true; do
                 fi
             fi
             
-            # Smart Media Detection (Verhindert Stottern bei Spotify & Co bei Screen-Off)
             if [ "$BLOCK_ALLOWED" == "1" ] && [ "$SMART_MEDIA_DETECT" == "1" ]; then
-                # Check for active audio players
                 if dumpsys audio | grep -q "player piid:.*state:started"; then
                     BLOCK_ALLOWED=0
                 fi
@@ -296,17 +284,15 @@ while true; do
                     am set-standby-bucket $GMS_PKG restricted > /dev/null 2>&1
                 fi
             else
-                # Blockierung temporär aufheben, da Anruf oder Musik aktiv ist
                 write_sysfs $SYSFS_ACTIVE 0
             fi
         fi
 
     else
-        # >>> SCREEN ON >>>
         write_sysfs $SYSFS_ACTIVE 0
         am set-standby-bucket $GMS_PKG active > /dev/null 2>&1
         LAST_SYNC=$(date +%s)
     fi
 
-    sleep 10
+    sleep 10 & wait $!
 done

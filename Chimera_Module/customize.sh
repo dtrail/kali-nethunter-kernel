@@ -13,6 +13,7 @@ killall -9 chimera 2>/dev/null
 # 2. Config Ordner erstellen
 ui_print "- Creating config directory..."
 mkdir -p /data/adb/chimera
+mkdir -p /data/adb/chimera/logs
 
 # 3. Berechtigungen setzen (Das Wichtigste!)
 # Da Magisk schon entpackt hat, sind die Dateien jetzt in $MODPATH.
