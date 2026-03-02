@@ -26,6 +26,40 @@ set_perm $MODPATH/service.sh 0 0 0755
 set_perm $MODPATH/system/bin/chimera 0 0 0755
 set_perm $MODPATH/system/bin/chimera_controller.sh 0 0 0755
 
+# ==============================================================================
+# CHIMERA FAMILIA - UPDATE & MIGRATION LOGIC
+# ==============================================================================
+
+CONF_DIR="/data/adb/chimera"
+CONF_FILE="$CONF_DIR/blocklist.conf"
+BACKUP_FILE="$CONF_DIR/blocklist_backup_v6.1.conf"
+
+ui_print "- Checking for existing configuration..."
+
+if [ -f "$CONF_FILE" ]; then
+    ui_print "  *************************************************"
+    ui_print "  ! EXISTING BLOCKLIST DETECTED !"
+    ui_print "  *************************************************"
+    ui_print "  Because v6.1 contains critical safety updates,"
+    ui_print "  your old blocklist has been backed up to:"
+    ui_print "  -> blocklist_backup_v6.1.conf"
+    ui_print " "
+    ui_print "  A fresh, safe default list will be generated."
+    ui_print "  Please use the WebUI or text editor to port"
+    ui_print "  your custom wakelocks over manually."
+    ui_print "  *************************************************"
+    
+    # Datei umbenennen (sichern)
+    mv "$CONF_FILE" "$BACKUP_FILE"
+else
+    ui_print "- No previous configuration found. Clean install."
+fi
+
+# Setze korrekte Berechtigungen für den Ordner, falls er schon existiert
+if [ -d "$CONF_DIR" ]; then
+    set_perm_recursive "$CONF_DIR" 0 0 0755 0644
+fi
+
 # 4. Aufräumen (Wie in deinem Beispiel)
 # customize.sh wird im installierten Modul nicht mehr gebraucht
 rm -f $MODPATH/customize.sh
