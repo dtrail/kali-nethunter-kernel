@@ -1,3 +1,4 @@
 [submodule "Chimera_Module"]
 	path = Chimera_Module
 	url = https://github.com/dtrail/Chimera_Module.git
+	branch = main
